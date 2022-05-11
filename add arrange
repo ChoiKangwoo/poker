@@ -1,0 +1,244 @@
+#include <stdio.h>
+#include <time.h>
+
+// 열거형
+enum num { ace = 1, jack = 11, queen = 12, king = 13 };
+
+// 카드 구조체
+struct Card {
+	int number;
+	int shape;
+};
+
+// 52장의 카드
+struct Card card_all[52];
+
+// 선수마다 갖게 되는 카드 7장
+struct Player {
+	struct Card card_player[7];
+};
+
+void shuffle()
+{
+	// 52장의 카드를 랜덤한 인덱스번째 카드와 하나씩 뒤바꾸어 줌
+	srand(time(NULL));
+	for (int i = 0; i < 52; i++)
+	{
+		int index = rand() % 52;
+		struct Card temp = card_all[index];
+		card_all[index] = card_all[i];
+		card_all[i] = temp;
+	}
+}
+
+void filldeck()
+{
+	int i = 0;
+	// 4개의 모양과 13개의 숫자를 짝지어서 카드 만듦
+	for (int j = 1; j <=4; j++)
+	{
+		for (int k = 1; k  <=13; k++)
+		{
+			card_all[i].number = k;
+			card_all[i].shape = j;
+			i++;
+		}
+	}
+}
+
+void deal(struct Player player[])
+{
+	// 섞어진 카드를 앞에서부터 나누어줌
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 7; j++)
+		{
+			player[i].card_player[j] = card_all[i * 7 + j];
+		}
+	}
+}
+void swap(int *a, int *b)
+{
+	int temp;																	//정렬에 쓰일 swap 함수 
+	temp = *a;																//주소에 의한 호출로 선언해 매개변수를 직접 조작
+	*a = *b;
+	*b = temp;
+}
+void arrange(struct Player player[],int player_numbers)
+{
+	for(int i=0; i<player_numbers;i++)
+		for(int j=0;j<6;j++)
+			for(int k=j+1;k<7;k++)
+				if ((player[i].card_player[j].number) > player[i].card_player[k].number)
+				{
+					swap(&(player[i].card_player[j].number), &(player[i].card_player[k].number));
+					swap(&(player[i].card_player[j].shape), &(player[i].card_player[k].shape));
+				}
+}
+
+int main(void)
+{
+
+	char name1[10], name2[10], name3[10];
+	printf("포커 게임의 참여자 3명을 차례로 입력하시오.\n");
+	printf("선수1: "); scanf(" %s", name1);
+	printf("선수2: "); scanf(" %s", name2);
+	printf("선수3: "); scanf(" %s", name3);
+
+	struct Player player[3];
+	while (1) {
+		printf("카드게임에 3명의 선수가 참여합니다...\n");
+		filldeck(); shuffle(); printf("52장의 카드를 섞어 줍니다.\n");
+		deal(player); printf("카드를 7장씩 나누어 줍니다.\n");
+		arrange(player, 3);
+		printf("%s %s %s\n", name1, name2, name3);
+
+		// 7개의 카드를 출력
+		for (int i = 0; i < 7; i++) {
+			// 사람마다 번갈아가며 1장씩
+			for (int j = 0; j < 3; j++)
+			{
+				switch (player[j].card_player[i].number) {
+					// 특별한 숫자일 경우
+				case ace:
+					printf("A");
+					break;
+				case jack:
+					printf("J");
+					break;
+				case queen:
+					printf("Q");
+					break;
+				case king:
+					printf("K");
+					break;
+				default:
+					printf("%d", player[j].card_player[i].number);
+					break;
+				}
+				printf(" of ");
+				switch (player[j].card_player[i].shape) {
+				case 1:
+					printf("♥ ");
+					break;
+				case 3:
+					printf("◆ ");
+					break;
+				case 2:
+					printf("♣ ");
+					break;
+				case 4:
+					printf("♠ ");
+					break;
+				}
+				printf("     ");
+			}
+			printf("\n\n");
+		}
+
+		printf("%s %s %s\n", name1, name2, name3);
+		int result[3] = { 0, }; int winner = 0; int winnerstats = 0; int tie = 0;
+		// 사람 3명
+		for (int i = 0; i < 3; i++) {
+			// 카드 7장을 돌아가며 해당 카드 뒤에 같은 카드가 몇장 있는지 확인
+			int same[7] = { 0, };
+			for (int j = 0; j < 7; j++) {
+				for (int k = j + 1; k < 7; k++) {
+					if (player[i].card_player[j].number == player[i].card_player[k].number) {
+						same[j]++;
+					}
+				}
+			}
+			// 같은 카드(쌍)이 있으면 pair를 증가하고, 3개가 같으면 triple 증가
+			int pair = 0; int triple = 0;
+			for (int j = 0; j < 7; j++)
+			{
+				if (same[j] == 1) {
+					pair++;
+				}
+				if (same[j] >= 2) {
+					triple++;
+				}
+			}
+			// 트리플이 있으면 결과는 트리플(3)
+			if (triple) {
+				result[i] = 3;
+			}
+			// 두쌍 이상일 경우 투페어(2)
+			else if (pair >= 2) {
+				result[i] = 2;
+			}
+			// 한쌍일 경우 원페어(1)
+			else if (pair == 1) {
+				result[i] = 1;
+			}
+			// 한쌍도 없고 트리플 없을경우(0)
+			else {
+				result[i] = 0;
+			}
+			switch (result[i]) {
+			case 1:
+				printf("one pair  ");
+				break;
+			case 2:
+				printf("two pair  ");
+				break;
+			case 3:
+				printf("triple  ");
+				break;
+			default:
+				printf("none  ");
+				break;
+			}
+			// 셋중에서 결과 우선순위가 높은 사람 찾기
+			if (winnerstats < result[i]) {
+				winner = i + 1;
+				winnerstats = result[i];
+				tie = 0;
+			}
+			// 동점인 사람수 세기
+			else if (winnerstats == result[i]) {
+				tie++;
+			}
+		}
+
+		printf("\nThe winner is ");
+		switch (winner) {
+		case 1:
+			printf("%s", name1);
+			break;
+		case 2:
+			printf("%s", name2);
+			break;
+		case 3:
+			printf("%s", name3);
+			break;
+		default:
+			printf("no one");
+			break;
+		}
+		printf(" (+%d) ", tie);
+		printf("by rank of ");
+		switch (winnerstats) {
+		case 1:
+			printf("one pair");
+			break;
+		case 2:
+			printf("two pair");
+			break;
+		case 3:
+			printf("triple");
+			break;
+		default:
+			printf("none");
+			break;
+		}
+
+		char answer;
+		printf("\n\n계속?");
+		scanf(" %c", &answer);
+		if (answer == 'y') continue;
+		else break;
+	}
+	return 0;
+}
