@@ -1,0 +1,420 @@
+#include <stdio.h>
+#include <time.h>
+
+// 열거형
+enum num { ace = 1, jack = 11, queen = 12, king = 13 };
+
+// 카드 구조체
+struct Card {
+	int number;
+	int shape;
+};
+
+// 52장의 카드
+struct Card card_all[52];
+
+// 선수마다 갖게 되는 카드 7장
+struct Player {
+	struct Card card_player[7];
+};
+
+void shuffle()
+{
+	// 52장의 카드를 랜덤한 인덱스번째 카드와 하나씩 뒤바꾸어 줌
+	srand(time(NULL));
+	for (int i = 0; i < 52; i++)
+	{
+		int index = rand() % 52;
+		struct Card temp = card_all[index];
+		card_all[index] = card_all[i];
+		card_all[i] = temp;
+	}
+}
+
+void filldeck()
+{
+	int i = 0;
+	// 4개의 모양과 13개의 숫자를 짝지어서 카드 만듦
+	for (int j = 1; j <=4; j++)
+	{
+		for (int k = 1; k  <=13; k++)
+		{
+			card_all[i].number = k;
+			card_all[i].shape = j;
+			i++;
+		}
+	}
+}
+
+void deal(struct Player player[])
+{
+	// 섞어진 카드를 앞에서부터 나누어줌
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 7; j++)
+		{
+			player[i].card_player[j] = card_all[i * 7 + j];
+		}
+	}
+}
+void swap(int *a, int *b)
+{
+	int temp;																	//정렬에 쓰일 swap 함수 
+	temp = *a;																//주소에 의한 호출로 선언해 매개변수를 직접 조작
+	*a = *b;
+	*b = temp;
+}
+void arrange(struct Player player[],int player_numbers)
+{
+	for(int i=0; i<player_numbers;i++)
+		for(int j=0;j<6;j++)
+			for(int k=j+1;k<7;k++)
+				if ((player[i].card_player[j].number) > player[i].card_player[k].number)
+				{
+					swap(&(player[i].card_player[j].number), &(player[i].card_player[k].number));
+					swap(&(player[i].card_player[j].shape), &(player[i].card_player[k].shape));
+				}
+}
+
+int checkStraight(struct Player p) // 직접 구현
+{
+	int i, j, number, count;
+	//숫자를 모두 모음. 13개의 숫자 중에서 가지고 있는 숫자는 1, 그렇지 않으면 0
+	int collection[13];
+	//일단 모두 안 가지고 있는 것으로 초기화
+	for (i = 0; i < 13; i++)
+	{
+		collection[i] = 0;
+	}
+
+	//가지고 있으면 collection을 1로 변경
+	for (j = 0; j < 7; j++)
+	{
+		//ace가 1부터 시작하기 때문에 -1을 해줌
+		number =( p.card_player[j].number) - 1;
+		//같은 number가 중복되도 상관없음
+		collection[number] = 1;
+	}
+
+	//0부터 12까지 연속되면 count 증가
+	//중간에 끊기면 count 0으로 초기화
+	count = 0;
+	if (collection[0] == 1)
+	{
+		if (collection[9] == 1 && collection[10] == 1 && collection[11] == 1 && collection[12] == 1)
+			return 2; //A 10 J Q K 의 경우 포커 족보대로면 마운틴이므로 2를 출력해 스트레이트와 구분한다.
+	}
+	
+	for (i = 0; i < 13; i++)
+	{
+		if (collection[i] == 1)
+		{
+			count++;
+		}
+		else
+		{
+			count = 0;
+		}
+
+		if (count == 5)
+		{
+			//성공하면 즉시 1 리턴
+			return 1;  //일반 스트레이트의 경우 1을 출력한다.
+		}
+	}
+
+	//반복문 다 돌고 여기까지 왔으면 실패
+	return 0;
+}
+
+int checkFlush(struct Player p) // 직접 구현
+{
+	int i, j, s;
+	//4개의 모양을 몇 개 가지고 있는지 저장함.
+	int collection[4];
+	//0으로 초기화
+	for (i = 0; i < 4; i++)
+	{
+		collection [i]= 0;
+	}
+
+	//가지고 있는 카드는 +1
+	for (j = 0; j < 7; j++)
+	{
+		s = p.card_player[j].shape;
+		collection[s]++;
+	}
+
+	//몇 개 가지고 있나 검사
+	for (i = 0; i < 4; i++)
+	{
+		if (collection[i] >= 5)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
+int checkFullhouse(struct Player p) // 직접 구현
+{
+	int i, j, n, fh2, fh3;
+	//숫자마다 장수를 세린다.
+	int collection[13];
+	//0으로 초기화
+	for (i = 0; i < 13; i++)
+	{
+		collection[i] = 0;
+	}
+
+	for (j = 0; j < 7; j++)
+	{
+		n = (p.card_player[j].number) - 1; //ace가 1이라서 -1해줌
+		collection[n]++; //계수
+	}
+
+	//두 장인 것과 3장인 것을 세린다.
+	fh2 = 0;
+	fh3 = 0;
+
+	for (i = 0; i < 13; i++)
+	{
+		if (collection[i] == 2) fh2 = 1;
+		if (collection[i] == 3) fh3 = 1;
+	}
+
+	if (fh2 == 1 && fh3 == 1)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+
+int main(void)
+{
+
+	char name1[10], name2[10], name3[10];
+	printf("포커 게임의 참여자 3명을 차례로 입력하시오.\n");
+	printf("선수1: "); scanf(" %s", name1);
+	printf("선수2: "); scanf(" %s", name2);
+	printf("선수3: "); scanf(" %s", name3);
+
+	struct Player player[3];
+	while (1) {
+		printf("카드게임에 3명의 선수가 참여합니다...\n");
+		filldeck(); shuffle(); printf("52장의 카드를 섞어 줍니다.\n");
+		deal(player); printf("카드를 7장씩 나누어 줍니다.\n");
+		arrange(player, 3);
+		printf("%s %s %s\n", name1, name2, name3);
+
+		// 7개의 카드를 출력
+		for (int i = 0; i < 7; i++) {
+			// 사람마다 번갈아가며 1장씩
+			for (int j = 0; j < 3; j++)
+			{
+				switch (player[j].card_player[i].number) {
+					// 특별한 숫자일 경우
+				case ace:
+					printf("A");
+					break;
+				case jack:
+					printf("J");
+					break;
+				case queen:
+					printf("Q");
+					break;
+				case king:
+					printf("K");
+					break;
+				default:
+					printf("%d", player[j].card_player[i].number);
+					break;
+				}
+				printf(" of ");
+				switch (player[j].card_player[i].shape) {
+				case 1:
+					printf("♥ ");
+					break;
+				case 3:
+					printf("◆ ");
+					break;
+				case 2:
+					printf("♣ ");
+					break;
+				case 4:
+					printf("♠ ");
+					break;
+				}
+				printf("     ");
+			}
+			printf("\n\n");
+		}
+
+		printf("%s %s %s\n", name1, name2, name3);
+		int result[3] = { 0, }; int winner = 0; int winnerstats = 0; int tie = 0; int straight = 0; int flush = 0; int full_house = 0;
+		// 사람 3명
+		for (int i = 0; i < 3; i++) {
+			// 카드 7장을 돌아가며 해당 카드 뒤에 같은 카드가 몇장 있는지 확인
+			int same[7] = { 0, };
+			for (int j = 0; j < 7; j++) {
+				for (int k = j + 1; k < 7; k++) {
+					if (player[i].card_player[j].number == player[i].card_player[k].number) {
+						same[j]++;
+					}
+				}
+			}
+			// 같은 카드(쌍)이 있으면 pair를 증가하고, 3개가 같으면 triple 증가
+			int pair = 0; int triple = 0; int four_card = 0;
+			for (int j = 0; j < 7; j++)
+			{
+				if (same[j] == 1) {
+					pair++;
+				}
+				if (same[j] == 2) {
+					triple++;
+				}
+				if (same[j] == 3) {
+					four_card++;
+				}
+			}
+			straight = checkStraight(player[i]);
+			flush = checkFlush(player[i]);
+			full_house = checkFullhouse(player[i]);
+			//플러쉬와 마운틴이 있다면 결과는 로얄스트레이트 플러쉬
+			if (flush&&straight == 2) {
+				result[i] = 6000000;
+			}
+			//플러쉬와 스트레이트가 있다면 결과는 스트레이트 플러쉬
+			else if (flush&&straight == 1) {
+				result[i] = 5000000;
+			}
+			//포카드가 있으면 결과는 포카드(4)
+			else if (four_card) {
+				result[i] = 4000000;
+			}
+			//풀하우스가 있다면 결과는 풀하우스
+			else if (full_house) {
+				result[i] = 3000000;
+			}
+			//플러쉬가 있다면 결과는 플러쉬
+			else if (flush) {
+				result[i] = 2000000;
+			}
+			//마운틴이 있다면 결과는 마운틴
+			else if (straight == 2) {
+				result[i] = 1500000;
+			}
+			//스트레이트가 있다면 결과는 스트레이트
+			else if (straight == 1) {
+				result[i] = 1000000;
+			}
+			// 트리플이 있으면 결과는 트리플(3)
+			else if (triple) {
+				result[i] = 3;
+			}
+			// 두쌍 이상일 경우 투페어(2)
+			else if (pair >= 2) {
+				result[i] = 2;
+			}
+			// 한쌍일 경우 원페어(1)
+			else if (pair == 1) {
+				result[i] = 1;
+			}
+			// 한쌍도 없고 트리플 없을경우(0)
+			else {
+				result[i] = 0;
+			}
+			switch (result[i]) {
+			case 1:
+				printf("one pair  ");
+				break;
+			case 2:
+				printf("two pair  ");
+				break;
+			case 3:
+				printf("triple  ");
+				break;
+			case 1000000:
+				printf("straight  ");
+				break;
+			case 1500000:
+				printf("mountain  ");
+				break;
+			case 2000000:
+				printf("flush  ");
+				break;
+			case 3000000:
+				printf("full house  ");
+				break;
+			case 4000000:
+				printf("four card  ");
+				break;
+			case 5000000:
+				printf("straight flush  ");
+				break;
+			case 6000000:
+				printf("Royal straight flush  ");
+				break;
+
+			default:
+				printf("none  ");
+				break;
+			}
+			// 셋중에서 결과 우선순위가 높은 사람 찾기
+			if (winnerstats < result[i]) {
+				winner = i + 1;
+				winnerstats = result[i];
+				tie = 0;
+			}
+			// 동점인 사람수 세기
+			else if (winnerstats == result[i]) {
+				tie++;
+			}
+		}
+
+		printf("\nThe winner is ");
+		switch (winner) {
+		case 1:
+			printf("%s", name1);
+			break;
+		case 2:
+			printf("%s", name2);
+			break;
+		case 3:
+			printf("%s", name3);
+			break;
+		default:
+			printf("no one");
+			break;
+		}
+		printf(" (+%d) ", tie);
+		printf("by rank of ");
+		switch (winnerstats) {
+		case 1:
+			printf("one pair");
+			break;
+		case 2:
+			printf("two pair");
+			break;
+		case 3:
+			printf("triple");
+			break;
+		default:
+			printf("none");
+			break;
+		}
+
+		char answer;
+		printf("\n\n계속?");
+		scanf(" %c", &answer);
+		if (answer == 'y') continue;
+		else break;
+	}
+	return 0;
+}
